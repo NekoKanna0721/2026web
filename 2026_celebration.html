@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 金马祥瑞·典藏版</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@900&display=swap');
+
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            /* 背景维持好评的：中心红 -> 边缘白 */
+            background: radial-gradient(circle at center, #e60000 0%, #ff6666 40%, #ffcccc 75%, #ffffff 100%);
+            font-family: 'Noto Serif SC', 'Microsoft YaHei', serif; 
+        }
+        
+        #overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background: rgba(255, 245, 245, 0.4);
+            backdrop-filter: blur(10px);
+            z-index: 100; transition: opacity 0.5s ease;
+        }
+        
+        h1 {
+            color: #b30000; 
+            font-weight: 900; font-size: 3.5rem; margin-bottom: 30px;
+            /* CSS标题也用柔和光晕 */
+            text-shadow: 0 0 25px rgba(255, 0, 0, 0.4);
+            letter-spacing: 5px;
+        }
+
+        #start-btn {
+            padding: 25px 110px;
+            font-size: 28px; font-weight: 900; color: #fff;
+            background: linear-gradient(90deg, #d90000, #ff4500);
+            border: 3px solid #fff; border-radius: 80px;
+            cursor: pointer; 
+            box-shadow: 0 5px 25px rgba(217, 0, 0, 0.5);
+            transition: all 0.2s ease;
+            font-family: 'Noto Serif SC', serif;
+        }
+        
+        #start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(217, 0, 0, 0.7);
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.4/gsap.min.js"></script>
+</head>
+<body>
+
+    <div id="overlay">
+        <h1>2026 金马祥瑞</h1>
+        <button id="start-btn">开启盛典</button>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        const BLESSINGS = [
+            "龙马精神", "一马当先", "马到成功", "万马奔腾", 
+            "天马行空", "财源广进", "五福临门", "国泰民安",
+            "大展宏图", "生意兴隆", "阖家幸福", "一夜暴富", 
+            "升职加薪", "平安喜乐", "心想事成", "吉星高照", 
+            "鸿运当头", "花开富贵", "金榜题名", "身体健康",
+            "Rich", "Win", "2026", "Joy", "Health", "Lucky"
+        ];
+
+        // --- 音频：保持热闹喜庆 ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const masterGain = audioCtx.createGain();
+        masterGain.gain.value = 0.5;
+        masterGain.connect(audioCtx.destination);
+
+        function playKick(time) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.frequency.setValueAtTime(140, time);
+            osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.4);
+            gain.gain.setValueAtTime(0.7, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.4);
+            osc.connect(gain); gain.connect(masterGain);
+            osc.start(time); osc.stop(time + 0.4);
+        }
+
+        function playLead(freq, time) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'square'; 
+            osc.frequency.setValueAtTime(freq, time);
+            gain.gain.setValueAtTime(0, time);
+            gain.gain.linearRampToValueAtTime(0.15, time + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.5);
+            osc.connect(gain); gain.connect(masterGain);
+            osc.start(time); osc.stop(time + 0.5);
+        }
+
+        let isMusicPlaying = false;
+        function startMusic() {
+            if(isMusicPlaying) return; isMusicPlaying = true;
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            let beat = 0;
+            const scale = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50];
+            function loop() {
+                const now = audioCtx.currentTime;
+                if(beat % 4 === 0) playKick(now);
+                if(Math.random() > 0.25) {
+                    const note = scale[Math.floor(Math.random() * scale.length)];
+                    playLead(note, now);
+                }
+                beat++;
+                setTimeout(loop, 220); 
+            }
+            loop();
+        }
+
+        // --- 场景 ---
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0xffcccc, 0.0005);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 3000);
+        camera.position.set(0, 30, 750);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.6;
+        controls.maxDistance = 1200;
+
+        // --- 核心：优雅柔光文字生成器 ---
+        function createElegantGlowText(text, size, colorObj, isMain = false) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const fontSize = size * 2; 
+            const font = `900 ${fontSize}px "Noto Serif SC", "Microsoft YaHei", serif`;
+            ctx.font = font;
+            
+            const metrics = ctx.measureText(text);
+            const padding = isMain ? 150 : 80; // 边距适中
+            const w = metrics.width + padding * 2;
+            const h = fontSize + padding * 2;
+            canvas.width = w; canvas.height = h;
+            const cx = w / 2; const cy = h / 2;
+
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = font;
+
+            // --- Layer 1: 淡淡的、半透明的柔光晕 ---
+            // 使用 RGBA 设置半透明光晕
+            ctx.shadowColor = isMain ? 'rgba(255, 100, 0, 0.6)' : colorObj.glowRgba;
+            // 羽化半径适中，确保是“一圈”而不是“一片”
+            ctx.shadowBlur = isMain ? 50 : 25;
+            ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+            
+            // 只画影子
+            ctx.fillStyle = 'rgba(0,0,0,0)'; 
+            ctx.fillText(text, cx, cy);
+
+            // --- Layer 2: 清晰的描边和实体字 ---
+            ctx.shadowBlur = 0; // 关掉阴影，准备画实体
+
+            // 白色描边，保证清晰
+            ctx.lineWidth = isMain ? 8 : 4;
+            ctx.strokeStyle = '#ffffff';
+            ctx.strokeText(text, cx, cy);
+
+            // 填充实体颜色
+            if (isMain) {
+                const g = ctx.createLinearGradient(0, cy-size, 0, cy+size);
+                g.addColorStop(0, '#fffce0'); g.addColorStop(0.5, '#ffd700'); g.addColorStop(1, '#ffaa00');
+                ctx.fillStyle = g;
+            } else {
+                ctx.fillStyle = colorObj.c; // 彩色实体字
+            }
+            ctx.fillText(text, cx, cy);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            // NormalBlending 保证清晰和层次感
+            const mat = new THREE.SpriteMaterial({ 
+                map: tex, transparent: true, blending: THREE.NormalBlending 
+            });
+            const sprite = new THREE.Sprite(mat);
+            sprite.scale.set(w * 0.5 * 0.75, h * 0.5 * 0.75, 1);
+            return sprite;
+        }
+
+        // --- 场景布局 ---
+        const mainGroup = new THREE.Group();
+        // 主标题，金色字+柔和橙光
+        const title = createElegantGlowText("2026", 280, null, true);
+        title.position.y = 60;
+        mainGroup.add(title);
+        // 副标题，金色字+柔和橙光
+        const subTitle = createElegantGlowText("金马腾飞 · 盛世辉煌", 90, null, true);
+        subTitle.position.y = -140;
+        mainGroup.add(subTitle);
+        scene.add(mainGroup);
+
+        // --- 五彩斑斓祝福语 (带柔光) ---
+        const wordsGroup = new THREE.Group();
+        const wordSprites = [];
+        
+        // 精心调配的色盘：实体色 + 半透明柔光色
+        const PALETTE = [
+            { c: '#E60000', glowRgba: 'rgba(255, 50, 50, 0.5)' },  // 红
+            { c: '#009900', glowRgba: 'rgba(50, 255, 50, 0.5)' },  // 绿
+            { c: '#0055FF', glowRgba: 'rgba(50, 150, 255, 0.5)' }, // 蓝
+            { c: '#990099', glowRgba: 'rgba(200, 50, 255, 0.5)' }, // 紫
+            { c: '#FF8C00', glowRgba: 'rgba(255, 180, 50, 0.5)' }, // 橙
+        ];
+
+        for(let i=0; i<250; i++) {
+            const text = BLESSINGS[i % BLESSINGS.length];
+            const scheme = PALETTE[i % PALETTE.length];
+            // 传入配色方案
+            const sprite = createElegantGlowText(text, 35 + Math.random() * 40, scheme, false);
+            
+            const angle = i * 0.45;
+            const r = 400 + i * 1.5;
+            const y = (Math.random() - 0.5) * 1100;
+            sprite.position.set(Math.cos(angle)*r, y, Math.sin(angle)*r);
+            sprite.userData = { speedY: 0.2 + Math.random() * 0.3 };
+            wordsGroup.add(sprite);
+            wordSprites.push(sprite);
+        }
+        scene.add(wordsGroup);
+
+        // D. 粒子 (彩带)
+        const pGeo = new THREE.BufferGeometry();
+        const pPos = []; const pCols = [];
+        for(let i=0; i<1500; i++) {
+            pPos.push((Math.random()-0.5)*2500, (Math.random()-0.5)*2500, (Math.random()-0.5)*2500);
+            const c = new THREE.Color(); c.setHSL(Math.random(), 1, 0.6); pCols.push(c.r, c.g, c.b);
+        }
+        pGeo.setAttribute('position', new THREE.Float32BufferAttribute(pPos, 3));
+        pGeo.setAttribute('color', new THREE.Float32BufferAttribute(pCols, 3));
+        const pMat = new THREE.PointsMaterial({
+            size: 9, vertexColors: true, transparent: true, opacity: 0.8,
+            map: (() => {
+                const c = document.createElement('canvas'); c.width=16; c.height=16;
+                const cx = c.getContext('2d'); cx.fillStyle='#fff'; cx.fillRect(0,0,16,16); return new THREE.CanvasTexture(c);
+            })(), blending: THREE.AdditiveBlending 
+        });
+        scene.add(new THREE.Points(pGeo, pMat));
+
+        // --- 动画 ---
+        document.getElementById('start-btn').addEventListener('click', () => {
+            startMusic();
+            const ui = document.getElementById('overlay');
+            gsap.to(ui, { opacity: 0, duration: 0.8, onComplete: () => ui.remove() });
+            // 稳重入场
+            gsap.from(title.scale, { x: 0.8, y: 0.8, duration: 2, ease: "power2.out" });
+            gsap.from(title.material, { opacity: 0, duration: 1 });
+            wordSprites.forEach((s, i) => {
+                s.material.opacity = 0;
+                gsap.to(s.material, { opacity: 1, duration: 0.8, delay: 0.5 + Math.random() * 0.5 });
+            });
+            gsap.to(camera.position, { z: 850, duration: 2.5, ease: "power2.out" });
+        });
+
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            const t = clock.getElapsedTime();
+            mainGroup.position.y = Math.sin(t * 0.5) * 5; 
+            wordSprites.forEach(s => {
+                s.position.y += s.userData.speedY; if(s.position.y > 1000) s.position.y = -1000;
+            });
+            wordsGroup.rotation.y = t * 0.08;
+            controls.update(); renderer.render(scene, camera);
+        }
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        animate();
+    </script>
+</body>
+</html>
